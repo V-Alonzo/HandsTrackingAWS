@@ -9,4 +9,9 @@ dependencies:
   - pip
   - ffmpeg
   - uvicorn
+  - opencv
+
+  - pip:
+    - boto3
+    - mediapipe==0.10.21
 prefix: /opt/anaconda3/envs/mediapipe_env
