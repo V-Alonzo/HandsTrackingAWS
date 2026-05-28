@@ -1,0 +1,16 @@
+name: mediapipe_env
+channels:
+  - defaults
+dependencies:
+  - python-multipart
+  - python=3.10
+  - fastapi
+  - numpy
+  - pip
+  - uvicorn
+  - opencv
+
+  - pip:
+    - boto3
+    - mediapipe==0.10.21
+prefix: /opt/anaconda3/envs/mediapipe_env
