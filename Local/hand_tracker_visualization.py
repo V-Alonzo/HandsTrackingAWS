@@ -27,7 +27,7 @@ class HandTrackerVisualization:
         while(VR.isOpened()):
             ret, Frame = VR.read()
             if ret == True:
-                current_timestamp_ms = VR.get(cv2.CAP_PROP_POS_MSEC)
+                current_timestamp_ms = int(round(VR.get(cv2.CAP_PROP_POS_MSEC)))
                 if current_timestamp_ms >= total_processed_time_ms:
                     break
                 if current_timestamp_ms in hand_landmarks:

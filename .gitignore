@@ -1,3 +1,4 @@
 **/__pycache__/
 Local/secret/*.pem
 Local/secret/.env
+Local/Video/*.json

@@ -1,10 +1,38 @@
 import Local.video_uploader as video_uploader
 
-import VM.hand_tracker as hand_tracker
-
 from Local.hand_tracker_visualization import HandTrackerVisualization
 
 import Local.configurations as configurations
+
+import requests
+import os
+import json
+
+from mediapipe.framework.formats import landmark_pb2
+
+import dotenv
+dotenv.load_dotenv("Local/secret/.env")
+
+
+def deserialize_hand_landmarks(serialized_hand_landmarks: dict) -> dict:
+    hand_landmarks = {}
+
+    for timestamp_ms, hands in serialized_hand_landmarks.items():
+        hand_landmarks[int(timestamp_ms)] = [
+            landmark_pb2.NormalizedLandmarkList(
+                landmark=[
+                    landmark_pb2.NormalizedLandmark(
+                        x=landmark["x"],
+                        y=landmark["y"],
+                        z=landmark["z"],
+                    )
+                    for landmark in hand
+                ]
+            )
+            for hand in hands
+        ]
+
+    return hand_landmarks
 
 path_in_s3 = video_uploader.upload_video_to_s3(
     file_path = configurations.SOURCE_VIDEO_FILE_PATH,
@@ -13,15 +41,21 @@ path_in_s3 = video_uploader.upload_video_to_s3(
 )
 
 if path_in_s3 is not None:
-    hand_tracker_instance = hand_tracker.HandTracker()
-    # Cada key en este diccionario corresponde a un frame del video y contiene las coordenadas de los puntos clave de las manos detectadas en ese frame.
+    payload = {
+        "duration_ms": configurations.ANALYSIS_DURATION_MS,
+        "bucket_name": configurations.S3_BUCKET_NAME,
+        "object_key": configurations.VIDEO_OBJECT_KEY
+    }
 
-    # Este método se debe poder obtener desde API Gateway para mandar la información.
-    hand_landmarks = hand_tracker_instance.get_hands_landmarks(
-        duration_ms = configurations.ANALYSIS_DURATION_MS,
-        bucket_name = configurations.S3_BUCKET_NAME,
-        object_key = configurations.VIDEO_OBJECT_KEY
-    )
+    response = requests.get(f"{os.getenv('BASE_URL_EC2')}/get_hand_landmarks", params=payload)
+    response.raise_for_status()
+
+    response = response.json()
+
+    with open(configurations.OUTPUT_HAND_LANDMARKS_JSON_PATH, "w") as f:
+        json.dump(response["hand_landmarks"], f)
+
+    hand_landmarks = deserialize_hand_landmarks(response["hand_landmarks"])
 
     hand_tracker_visualization = HandTrackerVisualization()
     hand_tracker_visualization.visualize_hand_landmarks(
